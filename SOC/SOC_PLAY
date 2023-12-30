@@ -1,0 +1,34 @@
+Character 0
+Status = 0
+
+Character 1
+Status = 0
+
+Character 1
+SkinName = knuckles
+DisplayName = Knuckles
+PlayerText = ^5Knuckles^0 can destroy some walls simply by touching them, but he can't jump as high as the others.
+
+^5Ability:^0 Glide & Climb
+Double jump to glide in the air towards where the camera is facing as long as jump is held. Glide into a wall to climb it.
+
+^5Tip:^0 Press jump while climbing to jump off and point the camera away from the wall. Press spin instead to jump without changing the camera.
+#
+
+Character 2
+Status = 0
+
+Character 3
+Status = 0
+
+Character 4
+Status = 0
+
+Character 5
+Status = 0
+
+Character 6
+Status = 0
+
+Character 7
+Status = 0

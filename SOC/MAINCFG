@@ -1,0 +1,7 @@
+MainCfg
+GameData = knucklesdata.dat
+UseBlackRock = false
+LoopTitle = false
+CustomVersion = KRB2 v1.0
+TitlePicsMode = None
+NumDemos = 1
