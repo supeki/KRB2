@@ -1,3 +1,6 @@
+-- Uppercut! for Knuckles Robo Blast 2.
+-- By Marilyn, 100% reusable.
+
 freeslot("S_PLAY_UPPERCUT")
 
 states[S_PLAY_UPPERCUT] = {
@@ -30,6 +33,7 @@ end)
 addHook("PlayerThink", function(p)
 	if not playingAsKnuckles(p) then return end
 	if knucklesIsImmobile(p) then return end
+	if P_SuperReady(p) or (p.mo.state >= S_PLAY_SUPER_TRANS1 and p.mo.state <= S_PLAY_SUPER_TRANS6) then return end
 	
 	if not (p.cmd.buttons & BT_USE) and not (p.mo.state == S_PLAY_CLING or p.mo.state == S_PLAY_CLIMB) then
 		p.uppercutready = true
@@ -44,6 +48,7 @@ addHook("PlayerThink", function(p)
 	if (p.pflags & PF_JUMPED) and p.uppercuttap and not (p.pflags & PF_THOKKED) then
 		p.mo.state = S_PLAY_UPPERCUT
 		p.pflags = $ & ~PF_JUMPED
+		p.pflags = $|PF_THOKKED
 		p.pflags = $ & ~PF_SPINNING
 		P_InstaThrust(p.mo, R_PointToAngle2(0, 0, p.rmomx, p.rmomy), p.speed/2)
 		
