@@ -1,11 +1,11 @@
 -- Drill Dive! for Knuckles Robo Blast 2.
 -- By Marilyn, 100% reusable.
 
-freeslot("S_PLAY_DRILLDIVE")
+freeslot("S_PLAY_DRILLDIVE", "SPR2_DRLL")
 
 states[S_PLAY_DRILLDIVE] = {
 	sprite = SPR_PLAY,
-	frame = SPR2_NDRL|FF_ANIMATE,
+	frame = SPR2_DRLL|FF_ANIMATE,
 	tics = -1,
 	var1 = 3,
 	var2 = 2,
@@ -20,20 +20,21 @@ addHook("PlayerThink", function(p)
 	if (p.cmd.buttons & BT_CUSTOM1) and (((p.pflags & PF_JUMPED) and not (p.pflags & PF_THOKKED)) or (p.pflags & PF_GLIDING)) then
 		p.mo.state = S_PLAY_DRILLDIVE
 		p.pflags = $ & ~PF_JUMPED
+		p.pflags = $ & ~PF_GLIDING
 		p.pflags = $|PF_THOKKED
 		p.pflags = $ & ~PF_SPINNING
 		P_InstaThrust(p.mo, R_PointToAngle2(0, 0, p.rmomx, p.rmomy), p.speed/4)
 		
 		if (p.mo.eflags & MFE_UNDERWATER) then
-			P_SetObjectMomZ(p.mo, -4*FRACUNIT, false)
-		else
 			P_SetObjectMomZ(p.mo, -8*FRACUNIT, false)
+		else
+			P_SetObjectMomZ(p.mo, -16*FRACUNIT, false)
 		end
 	end
 
 	if p.mo.state == S_PLAY_DRILLDIVE then
 		P_SpawnGhostMobj(p.mo)
-		p.powers[pw_strong] = STR_ANIM|STR_FLOOR
+		p.powers[pw_strong] = STR_ANIM|STR_FLOOR|STR_HEAVY|STR_SPRING
 		
 		if not (p.cmd.buttons & BT_CUSTOM1) then
 			p.mo.state = S_PLAY_FALL
