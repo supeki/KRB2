@@ -19,7 +19,6 @@ freeslot(
 	"S_SONIC_PAIN", -- *ring loss sound*
 	"S_SONIC_DEAD", -- "NO!..."
 	"S_SONIC_DEAD2", -- "NO!..."
-	"S_SONIC_DEAD3", -- "NO!..."
 	"S_SONIC_TRANSFORM", -- "I'll show you what the Chaos Emeralds can really do!"
 	"S_SUPERSONIC_STND", -- ...
 	"S_SUPERSONIC_DASH", -- *Nyooooommm!!*
@@ -146,24 +145,17 @@ states[S_SONIC_DEAD] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_DEAD|A,
 	tics = 0,
+	action = A_SetObjectFlags,
+	var1 = MF_NOCLIP|MF_NOCLIPHEIGHT|MF_NOCLIPTHING,
+	var2 = 2,
 	nextstate = S_SONIC_DEAD2
 }
 
 states[S_SONIC_DEAD2] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_DEAD|A,
-	tics = 0,
-	action = A_SetObjectFlags,
-	var1 = MF_NOCLIP|MF_NOCLIPHEIGHT|MF_NOCLIPTHING,
-	var2 = 2,
-	nextstate = S_SONIC_DEAD3
-}
-
-states[S_SONIC_DEAD3] = {
-	sprite = SPR_PLAY,
-	frame = SPR2_DEAD|A,
 	tics = -1,
-	nextstate = S_SONIC_DEAD3
+	nextstate = S_SONIC_DEAD2
 }
 
 mobjinfo[MT_SONIC] = {
