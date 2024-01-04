@@ -27,6 +27,7 @@ rawset(_G, "knucklesIsImmobile", function(p)
 		or p.powers[pw_nocontrol]
 		or P_PlayerInPain(p)
 		or p.powers[pw_carry]
+		or p.exiting
 	)
 end)
 

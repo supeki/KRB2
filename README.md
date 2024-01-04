@@ -13,3 +13,8 @@ At least 1 GB of DDR3 (or higher) RAM.
 Any sort of Keyboard, and optionally a mouse.
 Windows XP or later (cannot confirm), some sort of MacOS version, or your favorite Linux distribution (KnuckOleS when? :pleading:)
 Knuckles the Echidna.
+
+Borrowed content:
+
+Open Your Heart from SA-OpenYourHeart.pk3, an optional add-on for SA-Sonic that replaces his Super Sonic theme.
+Renamed to O_VSSSON for use in KRB2.
