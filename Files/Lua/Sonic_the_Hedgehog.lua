@@ -18,7 +18,6 @@ freeslot(
 	"S_SONIC_FALL",
 	"S_SONIC_PAIN", -- *ring loss sound*
 	"S_SONIC_DEAD", -- "NO!..."
-	"S_SONIC_DEAD2", -- "NO!..."
 	"S_SONIC_TRANSFORM", -- *transformation sound*
 	"S_SUPERSONIC_STND", -- ...
 	"S_SUPERSONIC_WALK", -- ...
@@ -54,7 +53,6 @@ states[S_SONIC_WALK] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_WALK|FF_ANIMATE,
 	tics = 105,
-	action = nil,
 	var1 = 7,
 	var2 = 3,
 	nextstate = S_SONIC_DECIDE
@@ -64,8 +62,7 @@ states[S_SONIC_RUN] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_RUN_|FF_ANIMATE,
 	tics = 70,
-	action = nil,
-	var1 = 4,
+	var1 = 3,
 	var2 = 2,
 	nextstate = S_SONIC_DECIDE
 }
@@ -146,18 +143,8 @@ states[S_SONIC_PAIN] = {
 states[S_SONIC_DEAD] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_DEAD|A,
-	tics = 0,
-	action = A_SetObjectFlags,
-	var1 = MF_NOCLIP|MF_NOCLIPHEIGHT|MF_NOCLIPTHING,
-	var2 = 2,
-	nextstate = S_SONIC_DEAD2
-}
-
-states[S_SONIC_DEAD2] = {
-	sprite = SPR_PLAY,
-	frame = SPR2_DEAD|A,
 	tics = -1,
-	nextstate = S_SONIC_DEAD2
+	nextstate = S_SONIC_DEAD
 }
 
 states[S_SONIC_TRANSFORM] = {
@@ -183,7 +170,6 @@ states[S_SUPERSONIC_WALK] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_WALK|FF_ANIMATE|FF_SPR2SUPER,
 	tics = 105,
-	action = nil,
 	var1 = 7,
 	var2 = 3,
 	nextstate = S_SONIC_JUMP
@@ -209,7 +195,7 @@ states[S_SUPERSONIC_DASH1] = {
 states[S_SUPERSONIC_DASH2] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_RUN_|FF_ANIMATE|FF_SPR2SUPER,
-	tics = 70,
+	tics = 105,
 	var1 = 1,
 	var2 = 1,
 	nextstate = S_SUPERSONIC_FALL
@@ -225,6 +211,10 @@ states[S_SUPERSONIC_UNTRANSFORM] = {
 }
 
 mobjinfo[MT_SONIC] = {
+	--$Name Sonic
+	--$Sprite WAITA1
+	--$Category KRB2
+	mapthingnum = 2222,
 	spawnstate = S_SONIC_STND,
 	spawnhealth = 8,
 	seestate = S_SONIC_WALK,
@@ -239,9 +229,9 @@ mobjinfo[MT_SONIC] = {
 	deathstate = S_SONIC_DEAD,
 	xdeathstate = S_NULL,
 	deathsound = sfx_s3k35,
-	speed = skins["sonic"].normalspeed, -- Sonic's base normalspeed value :>
-	radius = skins["sonic"].radius,
-	height = skins["sonic"].height,
+	speed = 36*FRACUNIT, -- Sonic's base normalspeed value :>
+	radius = 16*FRACUNIT,
+	height = 48*FRACUNIT,
 	dispoffset = 0,
 	mass = 0,
 	damage = 0,
@@ -298,15 +288,7 @@ addHook("ShouldDamage", function(sonic, probablypmo, pmo)
 	
 	if sonic.super then
 		return false
-	elseif sonic.health < 2 and not sonic.cansuper then
-		P_SetObjectMomZ(sonic, 12*FRACUNIT, false)
-		S_ChangeMusic("VSSSON", true)
-		sonic.state = S_SONIC_TRANSFORM
-		sonic.cansuper = true
-		sonic.health = 4
-		return false
 	end
-	
 	
 	if sonic.state == S_SONIC_TRANSFORM then return false end
 	if sonic.invtimer then return false end
@@ -317,22 +299,37 @@ addHook("ShouldDamage", function(sonic, probablypmo, pmo)
 	S_StartSound(sonic, sfx_s3kb9)
 end, MT_SONIC)
 
+addHook("MobjSpawn", function(sonic)
+	sonic.skin = "sonic"
+	sonic.color = SKINCOLOR_CORNFLOWER
+end, MT_SONIC)
+
+addHook("MobjDeath", function(sonic, probablypmo, pmo)
+	if not sonic.cansuper then
+		P_SetObjectMomZ(sonic, 12*FRACUNIT, false)
+		S_ChangeMusic("VSSSON", true)
+		sonic.state = S_SONIC_TRANSFORM
+		sonic.cansuper = true
+		sonic.health = 4
+		sonic.flags = $ & ~(MF_NOGRAVITY|MF_NOCLIP|MF_NOCLIPHEIGHT|MF_NOCLIPTHING)
+		sonic.flags = $|MF_SPECIAL|MF_SHOOTABLE
+		return true
+	else
+		P_SetObjectMomZ(sonic, 12*FRACUNIT, false)
+		sonic.flags = $ & ~MF_NOGRAVITY
+		sonic.flags = $|MF_NOCLIP|MF_NOCLIPHEIGHT|MF_NOCLIPTHING
+	end
+end, MT_SONIC)
+
 addHook("MobjThinker", function(sonic)
 	if not (sonic and sonic.valid) then return end
-	sonic.skin = "sonic"
-	sonic.color = skins["sonic"].prefcolor
 	
 	if sonic.z+sonic.height < sonic.subsector.sector.floorheight then P_RemoveMobj(sonic) return end
 	if sonic.z > sonic.subsector.sector.ceilingheight then P_RemoveMobj(sonic) return end
 	
-	if sonic.state == S_SONIC_DEAD then
-		P_SetObjectMomZ(sonic, 12*FRACUNIT, false)
-		sonic.state = S_SONIC_DEAD2
-	end 
+	sonic.flags2 = $ & ~MF2_FRET
 	
 	if not sonic.health then return end
-	
-	sonic.flags2 = $ & ~MF2_FRET
 	
 	if sonic.state == S_SONIC_TRANSFORM then
 		if sonic.tics < 2 then
@@ -343,7 +340,6 @@ addHook("MobjThinker", function(sonic)
 	
 	if sonic.state == S_SONIC_TRANSFORM or sonic.state == S_SUPERSONIC_UNTRANSFORM then
 		P_InstaThrust(sonic, sonic.angle, 0)
-		P_SetObjectMomZ(sonic, 2*FRACUNIT, false)
 	end
 	
 	if sonic.state == S_SONIC_PAIN then
@@ -374,28 +370,22 @@ addHook("MobjThinker", function(sonic)
 			P_Thrust(sonic, sonic.angle, skins["sonic"].acceleration*FRACUNIT/17)
 		end
 		
-		if sonic.super then
-			sonic.state = S_SUPERSONIC_WALK
-		end
-		
 		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64) > 0 then
 			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64)
+		end
+		
+		if sonic.super then
+			sonic.state = S_SUPERSONIC_WALK
 		end
 	end
 	
 	if sonic.state == S_SUPERSONIC_WALK then
 		if FixedHypot(sonic.momx, sonic.momy) < sonic.info.speed/2*3 then
-			P_Thrust(sonic, sonic.angle, skins["sonic"].acceleration*FRACUNIT/17)
+			P_Thrust(sonic, sonic.angle, skins["sonic"].acceleration*FRACUNIT/12)
 		end
 		
-		if sonic.super then
-			if sonic.state == S_SONIC_WALK then
-				sonic.state = S_SUPERSONIC_WALK
-			end
-		end
-		
-		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/96) > 0 then
-			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/96)
+		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/128) > 0 then
+			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/128)
 		end
 	end
 	
@@ -411,7 +401,7 @@ addHook("MobjThinker", function(sonic)
 		sonic.flags = $|MF_PAIN
 		
 		if sonic.tics == 18 then 
-			if sonic.super
+			if sonic.super then
 				P_SetObjectMomZ(sonic, 16*skins["sonic"].jumpfactor, true)
 			else
 				P_SetObjectMomZ(sonic, 12*skins["sonic"].jumpfactor, true)
@@ -458,17 +448,17 @@ addHook("MobjThinker", function(sonic)
 		thok.color = sonic.color
 	end
 	
-	if sonic.state == S_SUPERSONIC_DASH2 then
-		if (FixedHypot(sonic.momx, sonic.momy) < sonic.info.speed and not sonic.super) or (sonic.super and FixedHypot(sonic.momx, sonic.momy) < sonic.info.speed/2*3) then
-			P_Thrust(sonic, sonic.angle, skins["sonic"].acceleration*FRACUNIT/17)
+	if sonic.state == S_SUPERSONIC_DASH1 then
+		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64) > 0 then
+			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64)
 		end
-		
-		if abs(sonic.z - sonic.target.z) ~= 0 then
-			sonic.momz = -(sonic.z - sonic.target.z)/TICRATE
-		end
+	end
 	
-		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/96) > 0 then
-			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/96)
+	if sonic.state == S_SUPERSONIC_DASH2 then
+		P_HomingAttack(sonic, sonic.target)
+	
+		if FixedHypot(sonic.momx, sonic.momy) < sonic.info.speed/2*3 then
+			P_Thrust(sonic, sonic.angle, R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/105)
 		end
 	end
 	
@@ -486,9 +476,9 @@ addHook("MobjThinker", function(sonic)
 	
 	local oldtics = sonic.tics
 	
-	if FixedHypot(sonic.momx, sonic.momy) >= 24*FRACUNIT and sonic.state == S_SONIC_WALK then
+	if FixedHypot(sonic.momx, sonic.momy) >= 18*FRACUNIT and sonic.state == S_SONIC_WALK then
 		P_SetMobjStateNF(sonic, S_SONIC_RUN)
-	elseif FixedHypot(sonic.momx, sonic.momy) < 24*FRACUNIT and sonic.state == S_SONIC_RUN then
+	elseif FixedHypot(sonic.momx, sonic.momy) < 18*FRACUNIT and sonic.state == S_SONIC_RUN then
 		P_SetMobjStateNF(sonic, S_SONIC_WALK)
 	end
 	
@@ -516,7 +506,7 @@ addHook("MobjThinker", function(sonic)
 			sonic.transtimer = $+1
 		end
 		
-		if sonic.transtimer >= 8*TICRATE and sonic.state ~= S_SONIC_TRANSFORM then
+		if sonic.transtimer >= 5*TICRATE and sonic.state ~= S_SONIC_TRANSFORM then
 			sonic.state = S_SONIC_TRANSFORM
 			sonic.transtimer = 0
 		end
