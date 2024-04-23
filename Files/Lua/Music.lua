@@ -4,7 +4,8 @@ local mus = {
 	["_title"] = "UNKNWN",
 	["_chsel"] = "USHORT",
 	["_creds"] = "USHORT",
-	["_shoes"] = "KXSPED"
+	["_shoes"] = "KXSPED",
+	["_inv"] = "_KXINV"
 }
 
 addHook("MusicChange", function(old, new)

@@ -6,6 +6,7 @@ freeslot(
 	"S_SONIC_SPAWN", -- "What's up, Knuckles?"
 	"S_SONIC_STND", -- ...
 	"S_SONIC_BORED", -- "I'm waaaaaaiting!"
+	"S_SONIC_BORED2", -- "I'm waaaaaaiting!"
 	"S_SONIC_WALK", -- Transitions into a run state if he's going fast enough, idk... lol.
 	"S_SONIC_RUN",
 	"S_SONIC_DECIDE",
@@ -24,29 +25,44 @@ freeslot(
 	"S_SUPERSONIC_DASH1", -- "I'll show you what the Chaos Emeralds can really do!"
 	"S_SUPERSONIC_DASH2", -- *Nyooooommm!!*
 	"S_SUPERSONIC_FALL", -- ...
-	"S_SUPERSONIC_UNTRANSFORM", -- ...
-	"sfx_whatup",
-	"sfx_illsho"
+	"S_SUPERSONIC_UNTRANSFORM" -- ...
 )
 
 states[S_SONIC_SPAWN] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_STND|A,
 	tics = 35,
-	action = A_PlaySound,
-	var1 = sfx_whatup,
-	var2 = 0,
 	nextstate = S_SONIC_STND
 }
 
 states[S_SONIC_STND] = {
 	sprite = SPR_PLAY,
 	frame = SPR2_STND|A,
+	tics = 105,
+	action = A_Look,
+	var1 = 2048 << 16 + 1,
+	var2 = 1,
+	nextstate = S_SONIC_BORED
+}
+
+states[S_SONIC_BORED] = {
+	sprite = SPR_PLAY,
+	frame = SPR2_WAIT|A,
 	tics = 17,
 	action = A_Look,
 	var1 = 2048 << 16 + 1,
 	var2 = 1,
-	nextstate = S_SONIC_STND
+	nextstate = S_SONIC_BORED2
+}
+
+states[S_SONIC_BORED2] = {
+	sprite = SPR_PLAY,
+	frame = SPR2_WAIT|B,
+	tics = 17,
+	action = A_Look,
+	var1 = 2048 << 16 + 1,
+	var2 = 1,
+	nextstate = S_SONIC_BORED
 }
 
 states[S_SONIC_WALK] = {
@@ -266,7 +282,7 @@ addHook("ShouldDamage", function(pmo, probablysonic, sonic)
 		return true
 	end
 	
-	if (sonic.state == S_SONIC_HOMING2 or sonic.state == S_SONIC_JUMP or sonic.state == S_SONIC_CHARGE or sonic.state == S_SONIC_SPINDASH) and ((pmo.player.pflags & PF_JUMPED) or (pmo.player.pflags & PF_SPINNING)) then
+	if (sonic.state == S_SONIC_JUMP or sonic.state == S_SONIC_CHARGE) and ((pmo.player.pflags & PF_JUMPED) or (pmo.player.pflags & PF_SPINNING)) then
 		P_InstaThrust(sonic, sonic.angle, -FixedHypot(sonic.momx, sonic.momy)/4)
 		P_SetObjectMomZ(sonic, 6*FRACUNIT, false)
 		
@@ -347,8 +363,13 @@ addHook("MobjThinker", function(sonic)
 		sonic.flags = $ & ~MF_SHOOTABLE
 		
 		if P_IsObjectOnGround(sonic) then
-			sonic.state = S_SONIC_STND
-			sonic.invtimer = 105
+			if sonic.cansuper and sonic.super == 0 then
+				sonic.state = S_SONIC_TRANSFORM
+				sonic.invtimer = 0
+			else
+				sonic.state = S_SONIC_STND
+				sonic.invtimer = 105
+			end
 		end
 		
 		return
@@ -357,13 +378,34 @@ addHook("MobjThinker", function(sonic)
 		sonic.flags = $ & ~MF_SHOOTABLE
 		sonic.invtimer = $ - 1
 		
+		if sonic.invtimer % 2 == 0 then
+			sonic.flags2 = $|MF2_DONTDRAW
+		else
+			sonic.flags2 = $ & ~MF2_DONTDRAW
+		end
+		
 		if not sonic.invtimer then
 			sonic.flags = $|MF_SPECIAL
 			sonic.flags = $|MF_SHOOTABLE
+			sonic.flags2 = $ & ~MF2_DONTDRAW
 		end
 	end
 	
-	if not sonic.target then return end
+	if not sonic.target then 
+		if sonic.waittimer == nil then
+			sonic.waittimer = 1
+		else
+			sonic.waittimer = $+1
+		end
+		
+		if sonic.waittimer >= 3*TICRATE and sonic.state ~= S_SONIC_BORED then
+			sonic.state = S_SONIC_BORED
+		end
+		
+		return 
+	else
+		sonic.waittimer = 0
+	end
 	
 	if sonic.state == S_SONIC_WALK or sonic.state == S_SONIC_RUN then
 		if FixedHypot(sonic.momx, sonic.momy) < sonic.info.speed then
@@ -372,6 +414,10 @@ addHook("MobjThinker", function(sonic)
 		
 		if sonic.angle ~= R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y) and (R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64) > 0 then
 			sonic.angle = $ - ($ - R_PointToAngle2(sonic.x, sonic.y, sonic.target.x, sonic.target.y))/(R_PointToDist2(sonic.x, sonic.y, sonic.target.x, sonic.target.y)/FRACUNIT/64)
+		end
+		
+		if sonic.cansuper and sonic.transtimer == 4*TICRATE then
+			sonic.state = S_SONIC_JUMP
 		end
 		
 		if sonic.super then
@@ -390,6 +436,10 @@ addHook("MobjThinker", function(sonic)
 	end
 	
 	if sonic.state == S_SONIC_DECIDE then
+		if sonic.cansuper and sonic.super == 0 then
+			sonic.state = S_SONIC_WALK
+		end
+	
 		if (not ((player.pflags & PF_JUMPED) or (player.pflags & PF_SPINNING))) and not P_IsObjectOnGround(sonic.target) then
 			sonic.state = S_SONIC_JUMP
 		elseif P_IsObjectOnGround(sonic.target) and not (player.pflags & PF_SPINNING) then
@@ -402,9 +452,9 @@ addHook("MobjThinker", function(sonic)
 		
 		if sonic.tics == 18 then 
 			if sonic.super then
-				P_SetObjectMomZ(sonic, 16*skins["sonic"].jumpfactor, true)
+				P_SetObjectMomZ(sonic, 14*skins["sonic"].jumpfactor, true)
 			else
-				P_SetObjectMomZ(sonic, 12*skins["sonic"].jumpfactor, true)
+				P_SetObjectMomZ(sonic, 10*skins["sonic"].jumpfactor, true)
 			end
 			
 			S_StartSound(sonic, sfx_jump)
@@ -437,15 +487,19 @@ addHook("MobjThinker", function(sonic)
 	end
 	
 	if sonic.state == S_SONIC_HOMING1 then
-		sonic.frame = (sonic.tics % 6)
+		if not sonic.cansuper then
+			sonic.frame = (sonic.tics % 6)
+		end
 	end
 	
 	if sonic.state == S_SONIC_HOMING2 then
-		if sonic.tics == 70 then S_StartSound(sonic, sfx_thok) end
-		
-		P_HomingAttack(sonic, sonic.target)
-		local thok = P_SpawnMobjFromMobj(sonic, 0, 0, 0, MT_THOK)
-		thok.color = sonic.color
+		if not sonic.cansuper then
+			if sonic.tics == 70 then S_StartSound(sonic, sfx_thok) end
+			
+			P_HomingAttack(sonic, sonic.target)
+			local thok = P_SpawnMobjFromMobj(sonic, 0, 0, 0, MT_THOK)
+			thok.color = sonic.color
+		end
 	end
 	
 	if sonic.state == S_SUPERSONIC_DASH1 then
@@ -495,7 +549,7 @@ addHook("MobjThinker", function(sonic)
 		
 		sonic.super = $ - 1
 		
-		if (not sonic.super) and P_IsObjectOnGround(sonic) then
+		if (not sonic.super) then
 			sonic.color = SKINCOLOR_CORNFLOWER
 			sonic.state = S_SUPERSONIC_UNTRANSFORM
 		end
